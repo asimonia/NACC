@@ -5,6 +5,7 @@ library(readr)
 library(rmarkdown)
 library(ggplot2)
 library(cowplot)
+library(caret)
 
 # Loading NACC data set 
 NACC <- read.csv(file = "/Users/lindseybrooks/Desktop/Practicum/Shi05082017-NACC.csv",
@@ -126,22 +127,22 @@ xtabs(~ NACCUDSD + AGE, data=Data_Subset)
 # remap levels for binomial
 Data_Subset$NACCUDSD <- mapvalues(Data_Subset$NACCUDSD, from = c("Impaired", "MCI", "Dementia"), to = c("Abnormal", "Abnormal", "Abnormal"))
 
-logistic <- glm(NACCUDSD ~ ., data=Data_Subset, family="binomial")
-summary(logistic)
 
-predicted.data <- data.frame(
-  probability.of.NACCUDSD=logistic$fitted.values,
-  NACCUDSD=Data_Subset$NACCUDSD)
+# split data into training and test, based on values of dependent variable 
+trainIndex <- createDataPartition(Data_Subset$NACCUDSD, p = .75,list=FALSE)
+training <- Data_Subset[trainIndex,]
+testing <- Data_Subset[-trainIndex,]
+trCntl <- trainControl(method = "CV",number = 5)
+glmModel <- train(NACCUDSD ~ .,data = training,trControl = trCntl,method="glm",family = "binomial")
 
-predicted.data <- predicted.data[
-  order(predicted.data$probability.of.NACCUDSD, decreasing=FALSE),]
-predicted.data$rank <- 1:nrow(predicted.data)
 
-## Plot the predicted probabilities for each sample having
-## Alzheimers and color by whether or not they actually had Alzheimers
-ggplot(data=predicted.data, aes(x=rank, y=probability.of.NACCUDSD)) +
-  geom_point(aes(color=NACCUDSD), alpha=1, shape=4, stroke=2) +
-  xlab("Index") +
-  ylab("Predicted probability of getting Alzheimers")
+summary(glmModel)
+glmModel
+confusionMatrix(glmModel)
+
+
+trainPredicted <- predict(glmModel,testing)
+
+confusionMatrix(trainPredicted,reference=testing$NACCUDSD)
 
 
