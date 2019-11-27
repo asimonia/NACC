@@ -13,7 +13,7 @@ NACC <- read.csv(file = "/Users/lindseybrooks/Desktop/Practicum/Shi05082017-NACC
                  stringsAsFactors = FALSE)
 
 # New data set from Variable selection
-Data_Subset <- select(NACC, VISITYR,BIRTHYR,SEX,EDUC,NACCBMI,SMOKYRS,PACKSPER,ALCOHOL,NACCUDSD,CVHATT,CBSTROKE,HYPERTEN,DEP2YRS,NACCAPOE,NACCNE4S)
+Data_Subset <- select(NACC, VISITYR,BIRTHYR,SEX,EDUC,NACCBMI,SMOKYRS,PACKSPER,ALCOHOL,NACCUDSD,CVHATT,CBSTROKE,HYPERTEN,DEP2YRS,NACCAPOE)
 
 
 # Adding 'AGE' variable calculated from VISITYR and BIRTHYR variables
@@ -75,9 +75,6 @@ Data_Subset$NACCAPOE <- factor(Data_Subset$NACCAPOE, levels=c(1,2,3,4,5,6),label
 Data_Subset$NACCAPOE[Data_Subset$NACCAPOE == 9] <- NA
 Data_Subset$NACCAPOE[Data_Subset$NACCAPOE == -4] <- NA
 
-Data_Subset$NACCNE4S <- factor(Data_Subset$NACCNE4S,levels=c(0,1,2),labels=c("No e4 allele","1 copy of e4 allele","2 copies of e4 allele"))
-Data_Subset$NACCNE4S[Data_Subset$NACCNE4S == 9] <- NA
-
 
 View(Data_Subset)
 write.csv(Data_Subset, file = "Data_Subset.csv")
@@ -93,8 +90,7 @@ Data_Subset <- Data_Subset[!(is.na(Data_Subset$SMOKYRS) |
                                is.na(Data_Subset$CBSTROKE) |
                                is.na(Data_Subset$HYPERTEN) |
                                is.na(Data_Subset$DEP2YRS) |
-                               is.na(Data_Subset$NACCAPOE) |
-                               is.na(Data_Subset$NACCNE4S) 
+                               is.na(Data_Subset$NACCAPOE)
 ),]
 nrow(Data_Subset)  # 32117 rows
 summary(Data_Subset)
@@ -119,8 +115,6 @@ xtabs(~ NACCUDSD + HYPERTEN, data=Data_Subset)
 xtabs(~ NACCUDSD + DEP2YRS, data=Data_Subset)
 xtabs(~ NACCUDSD + NACCAPOE, data=Data_Subset)
 xtabs(~ NACCUDSD + CBSTROKE, data=Data_Subset)
-xtabs(~ NACCUDSD + NACCNE4S, data=Data_Subset)
-xtabs(~ NACCUDSD + NPTHAL, data=Data_Subset)
 xtabs(~ NACCUDSD + AGE, data=Data_Subset)
 
 
@@ -138,11 +132,9 @@ glmModel <- train(NACCUDSD ~ .,data = training,trControl = trCntl,method="glm",f
 
 summary(glmModel)
 glmModel
-confusionMatrix(glmModel)
 
 
 trainPredicted <- predict(glmModel,testing)
 
 confusionMatrix(trainPredicted,reference=testing$NACCUDSD)
-
 
