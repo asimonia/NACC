@@ -12,7 +12,7 @@ library(rpart.plot)
 ##########################################
 # Preprocessing of data
 
-
+set.seed(123)
 # Loading raw NACC data set 
 NACC <- read.csv(file = "/Users/lindseybrooks/Desktop/Practicum/Shi05082017-NACC.csv",
                  header = TRUE,
@@ -49,7 +49,7 @@ Data_Subset$PACKSPER[Data_Subset$PACKSPER == 9] <- NA
 Data_Subset$PACKSPER[Data_Subset$PACKSPER == -4] <- NA
 
 # Create a smoking density variable
-Data_Subset <- mutate(Data_Subset, SMOKER_DENSITY = SMOKYRS * PACKSPER)
+Data_Subset <- mutate(Data_Subset, HEAVY_SMOKER = SMOKYRS * PACKSPER)
 
 # Change 'ALCOHOL' numeric variable to be a factor, and replace invalid entries to 'NA'
 Data_Subset$ALCOHOL <- factor(Data_Subset$ALCOHOL,levels=c(0:2),labels=c("Absent","Active","Inactive"))
@@ -86,7 +86,7 @@ summary(Data_Subset)
 # Remove instances with NA values
 nrow(Data_Subset) 
 Data_Subset <- Data_Subset[!(is.na(Data_Subset$EDUC) |
-                               is.na(Data_Subset$SMOKER_DENSITY) |
+                               is.na(Data_Subset$HEAVY_SMOKER) |
                                is.na(Data_Subset$ALCOHOL) |
                                is.na(Data_Subset$CVHATT) |
                                is.na(Data_Subset$CBSTROKE) |
@@ -96,22 +96,36 @@ Data_Subset <- Data_Subset[!(is.na(Data_Subset$EDUC) |
                                is.na(Data_Subset$NACCAPOE)
 ),]
 nrow(Data_Subset) 
-summary(Data_Subset)
+
 
 # check for duplicated survey results by same participant
-aggregate(data.frame(count = Data_Subset$NACCID), list(value = Data_Subset$NACCID), length)
+uniq_ids <- aggregate(data.frame(count = Data_Subset$NACCID), list(value = Data_Subset$NACCID), length)
 
-# we only want the latest observation from the participant 
+# we only want the latest observation from the participant
+# we should end up with 8784 observations
 Data_Subset <- setDT(Data_Subset)[,.SD[which.max(VISITYR)],keyby=NACCID]
 
-
+summary(Data_Subset)
+str(Data_Subset)
 ##########################################
 # Descriptive Analysis
 
-hist(Data_Subset$AGE)
-hist(Data_Subset$NACCBMI)
+cbPalette <- c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+
+hist(Data_Subset$AGE, breaks = 100, col = cbPalette[4], main = "Age Distribution", border = F, xlab = "Age")
+
+hist(Data_Subset$NACCBMI, col = cbPalette[4], main = "Distribution of BMI", 
+     xlab = "BMI", ylab = "# Participants" )
+
+agg_as <- aggregate(HEAVY_SMOKER ~ NACCUDSD, data = Data_Subset, mean)
+
+ggplot(agg_as, aes(x = NACCUDSD, y = HEAVY_SMOKER)) + geom_bar(stat = "identity", fill = cbPalette[4]) + 
+  ggtitle("Years times packs of smokes by Cognitive Status") + 
+  labs (y = "Years times packs of smokes", x = "Cognitive Status")
+
 boxplot(NACCBMI~NACCUDSD,data=Data_Subset, xlab="NACCUDSD", ylab="NACCBMI")
 boxplot(AGE~NACCUDSD,data=Data_Subset, xlab="NACCUDSD", ylab="AGE")
+
 
 
 
@@ -126,15 +140,37 @@ trainIndex <- createDataPartition(Data_Subset$NACCUDSD, p = .75,list=FALSE)
 training <- Data_Subset[trainIndex,]
 testing <- Data_Subset[-trainIndex,]
 trCntl <- trainControl(method = "CV",number = 5)
-glmModel <- train(NACCUDSD ~ SEX + EDUC + NACCBMI + ALCOHOL + CVHATT + CBSTROKE + HYPERTEN + DEP2YRS + NACCAPOE + AGE + SMOKER_DENSITY,data = training,trControl = trCntl,method="glm",family = "binomial")
+glmModel <- train(NACCUDSD ~ SEX + EDUC + NACCBMI + ALCOHOL + CVHATT + CBSTROKE + HYPERTEN + DEP2YRS + NACCAPOE + AGE + HEAVY_SMOKER,data = training,trControl = trCntl,method="glm",family = "binomial")
 summary(glmModel)
 
 trainPredicted <- predict(glmModel,testing)
 
 confusionMatrix(trainPredicted,reference=testing$NACCUDSD)
 
+m2 <- glm(NACCUDSD ~ SEX + EDUC + NACCBMI + ALCOHOL + CVHATT + CBSTROKE + HYPERTEN + DEP2YRS + NACCAPOE + AGE + HEAVY_SMOKER, data = training, family = 'binomial')
+summary(m2)
+
+hist(m2$fitted.values, main = "Distribution of Predicted Probabilities", 
+     xlab = "Probability of No Cognitive Impairment", col = cbPalette[4], border = F, breaks = 200)
+abline(v = .5, col = "red", lwd = 3)
+
+prop.table(table(m2$fitted.values >= .5))
+
+#To figure out how acccurate our model is at predicting cognitive impairment, 
+# we need to first take our model and use it to predict the outcomes for our test dataset. 
+
+m2_test <- predict(m2, newdata = testing, type = "response")
+
+hist(m2_test, main = "Distribution of Test Set \nPredicted Probabilities", 
+     xlab = "Probability of No Cognitive Impairment", col = cbPalette[4], border = F, breaks = 50)
+abline(v = .5, col = "red", lwd = 3)
+
+prop.table(table(m2_test >= .5))
+
+
+
 # Decision Trees
-dtrees_fit <- rpart(NACCUDSD ~ SEX + EDUC + NACCBMI + ALCOHOL + CVHATT + CBSTROKE + HYPERTEN + DEP2YRS + NACCAPOE + AGE + SMOKER_DENSITY, data=training,
+dtrees_fit <- rpart(NACCUDSD ~ SEX + EDUC + NACCBMI + ALCOHOL + CVHATT + CBSTROKE + HYPERTEN + DEP2YRS + NACCAPOE + AGE + HEAVY_SMOKER, data=training,
              method="class")
 dtrees_fit # basic model results
 
@@ -146,8 +182,8 @@ fancyRpartPlot(dtrees_fit, sub = NULL, main = "Final Decision Tree")
 ##########################################
 # ROC Curve
 library(ROCR)
-model <- glm(NACCUDSD ~ SEX + EDUC + NACCBMI + ALCOHOL + CVHATT + CBSTROKE + HYPERTEN + DEP2YRS + NACCAPOE + AGE + SMOKER_DENSITY,family=binomial(link='logit'),data=training)
-p <- predict(model, newdata=subset(testing,select=c(1,2,3,4,5,6,8,9,10,11,12,13)), type="response")
+model <- glm(NACCUDSD ~ SEX + EDUC + NACCBMI + ALCOHOL + CVHATT + CBSTROKE + HYPERTEN + DEP2YRS + NACCAPOE + AGE + HEAVY_SMOKER,family=binomial(link='logit'),data=training)
+p <- predict(model, newdata=subset(testing,select=c(4,5,6,9,11,12,13,14,15,16,17)), type="response")
 pr <- prediction(p, testing$NACCUDSD)
 prf <- performance(pr, measure = "tpr", x.measure = "fpr")
 plot(prf)
@@ -155,8 +191,3 @@ plot(prf)
 auc <- performance(pr, measure = "auc")
 auc <- auc@y.values[[1]]
 auc
-
-anova(model, test="Chisq")
-
-
-
