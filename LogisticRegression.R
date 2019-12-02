@@ -182,6 +182,12 @@ fancyRpartPlot(dtrees_fit, sub = NULL, main = "Final Decision Tree")
 ##########################################
 # ROC Curve
 library(ROCR)
+
+# transform the DV so that it is numeric
+# 0 = normal
+# 1 = abnormal
+testing$NACCUDSD <- as.integer(testing$NACCUDSD)
+testing$NACCUDSD <- testing$NACCUDSD - 1
 model <- glm(NACCUDSD ~ SEX + EDUC + NACCBMI + ALCOHOL + CVHATT + CBSTROKE + HYPERTEN + DEP2YRS + NACCAPOE + AGE + HEAVY_SMOKER,family=binomial(link='logit'),data=training)
 p <- predict(model, newdata=subset(testing,select=c(4,5,6,9,11,12,13,14,15,16,17)), type="response")
 pr <- prediction(p, testing$NACCUDSD)
@@ -191,3 +197,4 @@ plot(prf)
 auc <- performance(pr, measure = "auc")
 auc <- auc@y.values[[1]]
 auc
+
