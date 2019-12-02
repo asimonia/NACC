@@ -132,6 +132,16 @@ boxplot(AGE~NACCUDSD,data=Data_Subset, xlab="NACCUDSD", ylab="AGE")
 ##########################################
 # Predictive Analysis
 
+# attempt at the multinomial logit model
+library(mlogit)
+longdata <- mlogit.data(Data_Subset, choice = "NACCUDSD", shape = "wide")
+mlogitmodel <- mlogit(NACCUDSD ~ 1 | SEX + EDUC + NACCBMI + ALCOHOL + CVHATT + CBSTROKE + HYPERTEN + DEP2YRS + NACCAPOE + AGE + HEAVY_SMOKER, data = longdata, reflevel = "Dementia")
+summary(mlogitmodel)
+
+correct <- mlogitmodel$probabilities
+binarycorrect <- colnames(correct)[apply(correct,1,which.max)]
+table(Data_Subset$NACCUDSD, binarycorrect)
+
 # remap levels for binomial
 Data_Subset$NACCUDSD <- mapvalues(Data_Subset$NACCUDSD, from = c("Impaired", "MCI", "Dementia"), to = c("Abnormal", "Abnormal", "Abnormal"))
 
@@ -197,4 +207,9 @@ plot(prf)
 auc <- performance(pr, measure = "auc")
 auc <- auc@y.values[[1]]
 auc
+
+
+
+
+
 
