@@ -151,10 +151,10 @@ m2 <- glm(NACCUDSD ~ SEX + EDUC + NACCBMI + ALCOHOL + CVHATT + CBSTROKE + HYPERT
 summary(m2)
 
 hist(m2$fitted.values, main = "Distribution of Predicted Probabilities", 
-     xlab = "Probability of No Cognitive Impairment", col = cbPalette[4], border = F, breaks = 200)
+     xlab = "Probability of Cognitive Impairment", col = cbPalette[4], border = F, breaks = 200)
 abline(v = .5, col = "red", lwd = 3)
 
-prop.table(table(m2$fitted.values >= .5))
+prop.table(table(m2$fitted.values >= .5)) # 0.006829564
 
 #To figure out how acccurate our model is at predicting cognitive impairment, 
 # we need to first take our model and use it to predict the outcomes for our test dataset. 
@@ -162,10 +162,10 @@ prop.table(table(m2$fitted.values >= .5))
 m2_test <- predict(m2, newdata = testing, type = "response")
 
 hist(m2_test, main = "Distribution of Test Set \nPredicted Probabilities", 
-     xlab = "Probability of No Cognitive Impairment", col = cbPalette[4], border = F, breaks = 50)
+     xlab = "Probability of Cognitive Impairment", col = cbPalette[4], border = F, breaks = 200)
 abline(v = .5, col = "red", lwd = 3)
 
-prop.table(table(m2_test >= .5))
+prop.table(table(m2_test >= .5)) # 0.003189066
 
 
 
