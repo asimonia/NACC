@@ -1,3 +1,5 @@
+setwd("/Users/lindseybrooks/Desktop/Practicum")
+
 library(plyr)
 library(dplyr)
 library(ggplot2)
@@ -14,7 +16,7 @@ library(rpart.plot)
 
 set.seed(123)
 # Loading raw NACC data set 
-NACC <- read.csv(file = "/Users/lindseybrooks/Desktop/Practicum/Shi05082017-NACC.csv",
+NACC <- read.csv(file = "Shi05082017-NACC.csv",
                  header = TRUE,
                  stringsAsFactors = FALSE)
 
@@ -107,6 +109,21 @@ Data_Subset <- setDT(Data_Subset)[,.SD[which.max(VISITYR)],keyby=NACCID]
 
 summary(Data_Subset)
 str(Data_Subset)
+
+# transform the data set and check for collinearity
+D <- subset(Data_Subset)
+D$SEX <- as.numeric(Data_Subset$SEX)
+D$EDUC <- as.numeric(Data_Subset$EDUC)
+D$ALCOHOL <- as.numeric(Data_Subset$ALCOHOL)
+D$CVHATT <- as.numeric(Data_Subset$CVHATT)
+D$CBSTROKE <- as.numeric(Data_Subset$CBSTROKE)
+D$HYPERTEN <- as.numeric(Data_Subset$HYPERTEN)
+D$DEP2YRS <- as.numeric(Data_Subset$DEP2YRS)
+D$NACCAPOE <- as.numeric(Data_Subset$NACCAPOE)
+str(D)
+df <- subset(D, select = -c(1,2,3,7,8,10) )
+findCorrelation( cor(df), cutoff = .75, names = TRUE )
+
 ##########################################
 # Descriptive Analysis
 
