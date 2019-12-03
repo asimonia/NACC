@@ -165,6 +165,7 @@ hist(m2$fitted.values, main = "Distribution of Predicted Probabilities",
 abline(v = .5, col = "red", lwd = 3)
 
 prop.table(table(m2$fitted.values >= .5)) # 0.006829564
+prop.table(table(m2$fitted.values >= .3)) # 0.03748672
 
 #To figure out how acccurate our model is at predicting cognitive impairment, 
 # we need to first take our model and use it to predict the outcomes for our test dataset. 
@@ -176,7 +177,7 @@ hist(m2_test, main = "Distribution of Test Set \nPredicted Probabilities",
 abline(v = .5, col = "red", lwd = 3)
 
 prop.table(table(m2_test >= .5)) # 0.003189066
-
+prop.table(table(m2_test >= .3)) # 0.0332574
 
 
 # Decision Trees
@@ -188,6 +189,15 @@ summary(dtrees_fit)
 
 par(mar = c(5,4,1,2)) #setting the margins
 fancyRpartPlot(dtrees_fit, sub = NULL, main = "Final Decision Tree")
+
+fit_test <- predict(dtrees_fit, newdata= testing, type = "prob")
+
+prop.table(table(testing$NACCUDSD))
+accuracy <- table(fit_test[,2] > .5, testing$NACCUDSD)
+
+addmargins(table(fit_test[,2] > .5, testing$NACCUDSD))
+
+sum(diag(accuracy))/ sum(accuracy)
 
 ##########################################
 # ROC Curve
